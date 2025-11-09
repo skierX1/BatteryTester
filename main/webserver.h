@@ -10,8 +10,10 @@
 #include "files_rw.h"
 #include "esp_log.h"
 #include <esp_log.h>
+#include "voltage.h"
 
 extern const char *TAG;
+extern VoltageReader* voltage_reader_;
 
 class Webserver {
 public:
@@ -182,10 +184,10 @@ public:
 
         snprintf(json_response, sizeof(json_response),
                 "{\"voltage\":%.2f,\"cell1\":%.2f,\"cell2\":%.2f,\"current\":%.2f,\"countdown\":%d}",
-                3.84,
-                4.11,
-                8.34,
-                39.2,
+                voltage_reader_->voltage[1].voltage,
+                voltage_reader_->voltage[0].voltage,
+                voltage_reader_->voltage[1].voltage - voltage_reader_->voltage[0].voltage,
+                voltage_reader_->voltage[1].voltage / 0.2,
                 4);
         
         httpd_resp_set_type(req, "application/json");

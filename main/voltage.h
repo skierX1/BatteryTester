@@ -23,7 +23,6 @@
 
 #include "defines.h"
 
-
 // GPIO to ADC channel mapping
 typedef struct {
     gpio_num_t gpio;
@@ -71,5 +70,6 @@ class VoltageReader {
 
     VoltageStruct voltage[NUM_GPIOs];
 };
+
 
 #endif

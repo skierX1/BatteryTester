@@ -37,9 +37,13 @@
 #include "wifi.h"
 
 const char *TAG = "BATTERY_TESTER";
+extern VoltageReader* voltage_reader_;
 
 extern "C" void app_main(void)
 {
+    VoltageReader voltage_reader;
+    voltage_reader_ = &voltage_reader;
+
     // Initialize spiffs partition
     if (!Spiffs::Activate()) {
         ESP_LOGI (TAG, "Flash memory activation failed !");
@@ -61,13 +65,6 @@ extern "C" void app_main(void)
     // Start web server
     Webserver::start_webserver();
 
-    // Main loop
-    //while (1) {
-    //    ESP_LOGI(TAG, "System running - Free memory: %d bytes, Uptime: %s",
-    //             esp_get_free_heap_size(), Webserver::get_uptime_string());
-    //    vTaskDelay(pdMS_TO_TICKS(10000));
-    //}
-    
     /* Print chip information */
     esp_chip_info_t chip_info;
     uint32_t flash_size;
@@ -97,32 +94,26 @@ extern "C" void app_main(void)
     printf("************************************************************************************************");
 
     //------------------------------------------
-    VoltageReader vr;
+    
     ESP_LOGI(TAG, "Starting multi-GPIO voltage reading");
     
     // Main reading loop
     while(true) {
         printf("\n==== CITAM NAPATIA CITAM AKO BLAZON ======================\n");
-        vr.ReadVoltage();
+        voltage_reader.ReadVoltage();
         
         for (int i = 0; i < NUM_GPIOs; i++) {
             ESP_LOGI(TAG, "%s - Raw: %lu, Voltage: %.3fV, Calibrated: %s", 
-                    vr.adc_channels[i].label,
-                    vr.voltage[i].raw, 
-                    vr.voltage[i].voltage,
-                    vr.voltage[i].calibrated ? "Yes" : "No");
+                    voltage_reader.adc_channels[i].label,
+                    voltage_reader.voltage[i].raw, 
+                    voltage_reader.voltage[i].voltage,
+                    voltage_reader.voltage[i].calibrated ? "Yes" : "No");
         }
         
         printf("================================================================\n");
-        vTaskDelay(pdMS_TO_TICKS(5000));
+        vTaskDelay(pdMS_TO_TICKS(500));
     }
-    //------------------------------------------
-
-    for (int i = 5; i >= 0; i--) {
-        printf("Restarting in %d seconds...\n", i);
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
-    }
-    printf("End of program ... now.\n");
+ 
     fflush(stdout);
     //esp_restart();
 

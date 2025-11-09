@@ -10,6 +10,7 @@
 #include "esp_adc_cal.h"
 
 extern const char *TAG;
+VoltageReader* voltage_reader_;
 
 VoltageReader::VoltageReader() {
     setup_adc_channels();
