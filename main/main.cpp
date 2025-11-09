@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <inttypes.h>
 #include "sdkconfig.h"
@@ -19,15 +18,12 @@
 #include "esp_adc_cal.h"
 #include <esp_log.h>
 
-#include "./voltage.h"
+#include "voltage.h"
 
 #include "esp_spiffs.h"
-
-//------------
-
-// For ADC in ESP32-C6, try including through driver
 #include "esp_adc/adc_oneshot.h"
 
+#include "defines.h"
 /////////////////////////////////////////////////////
 
 #include <string.h>
@@ -36,343 +32,13 @@
 #include "nvs_flash.h"
 #include "esp_netif.h"
 #include "esp_wifi.h"
-
+#include "files_rw.h"
 
 // WiFi configuration
-#define WIFI_SSID      "ESP32-C6"
+#define WIFI_SSID      "ESP32-C6-Batt"
 #define WIFI_PASS      ""
 #define WIFI_IP        "192.168.4.1"
 #define MAX_STA_CONN   4
-
-// HTML web page
-static const char* HTML_PAGE = R"rawliteral(
-<!doctype html>
-<html lang="sk">
-<head>
-  <meta charset="utf-8">
-  <title>RC battery tester</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <style>
-    /* --- your original CSS untouched --- */
-    :root {
-      --bg-color: #e8f4ff;
-      --text-color: #111;
-      --card-bg: rgba(255,255,255,0.9);
-      --border-color: #ccc;
-    }
-
-    body {
-      font-family: Arial, sans-serif;
-      padding: 20px;
-      background: var(--bg-color) url("background.jpg") no-repeat center center fixed;
-      background-size: cover;
-      color: var(--text-color);
-      transition: background-color 0.4s, color 0.4s;
-    }
-
-    body.dark-mode {
-      --bg-color: #121212;
-      --text-color: #f1f1f1;
-      --card-bg: #1e1e1e;
-      --border-color: #444;
-    }
-
-    body::before {
-      content: "";
-      position: fixed;
-      inset: 0;
-      background: url("background.jpg") no-repeat center center fixed;
-      background-size: cover;
-      z-index: -1;
-      transition: filter 0.4s;
-    }
-
-    body.dark-mode::before {
-      filter: invert(1) hue-rotate(180deg);
-    }
-
-    h1 {
-      margin-bottom: 10px;
-      background: var(--card-bg);
-      display: inline-block;
-      padding: 6px 10px;
-      border-radius: 8px;
-    }
-
-    .dark-mode-toggle {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      background: #222;
-      color: white;
-      border: none;
-      border-radius: 20px;
-      padding: 10px 16px;
-      cursor: pointer;
-      font-weight: bold;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-      transition: background 0.3s;
-    }
-
-    .dark-mode-toggle:hover { background: #444; }
-
-    .control-box {
-      background: var(--card-bg);
-      padding: 20px;
-      border-radius: 15px;
-      border: 1px solid var(--border-color);
-      width: fit-content;
-      margin-bottom: 25px;
-      box-shadow: 0 3px 8px rgba(0,0,0,0.1);
-    }
-
-    .testname {
-      display: flex;
-      align-items: center;
-      margin-bottom: 15px;
-    }
-
-    .testname label {
-      font-weight: bold;
-      margin-right: 10px;
-    }
-
-    .testname input {
-      width: 250px;
-      padding: 6px 10px;
-      border: 1px solid var(--border-color);
-      border-radius: 6px;
-      font-size: 14px;
-      background: #fff;
-      color: #000;
-    }
-
-    body.dark-mode .testname input {
-      background: #333;
-      color: #f1f1f1;
-    }
-
-    .toolbar {
-      display: flex;
-      align-items: center;
-      gap: 20px;
-      margin-bottom: 15px;
-    }
-
-    .circle-btn {
-      width: 70px;
-      height: 70px;
-      border-radius: 50%;
-      border: none;
-      color: white;
-      font-size: 20px;
-      font-weight: bold;
-      cursor: pointer;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-      transition: transform 0.15s ease, background 0.3s;
-    }
-
-    .circle-btn:active { transform: scale(0.9); }
-
-    #startBtn { background: #4caf50; }
-    #stopBtn { background: #f44336; }
-
-    body.dark-mode #startBtn { background: #2e7d32; }
-    body.dark-mode #stopBtn { background: #c62828; }
-
-    #seconds {
-      width: 80px;
-      text-align: center;
-      padding: 8px;
-      font-weight: bold;
-      font-size: 18px;
-      background: #fff;
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      color: #000;
-    }
-
-    body.dark-mode #seconds {
-      background: #333;
-      color: #f1f1f1;
-    }
-
-    .status-box {
-      display: flex;
-      justify-content: center;
-      gap: 30px;
-      margin-top: 10px;
-    }
-
-    .status-item {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 6px;
-    }
-
-    .status-column {
-      display: flex;
-      flex-direction: column;
-    }
-
-    .status-item label {
-      font-weight: bold;
-      min-width: 70px;
-    }
-
-    .status-item input {
-      width: 100px;
-      text-align: center;
-      padding: 6px;
-      font-weight: bold;
-      font-size: 18px;
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      background: #fff;
-      color: #000;
-    }
-
-    body.dark-mode .status-item input {
-      background: #333;
-      color: #f1f1f1;
-    }
-
-    ul {
-      list-style: none;
-      padding-left: 0;
-      background: var(--card-bg);
-      display: inline-block;
-      padding: 10px 20px;
-      border-radius: 10px;
-    }
-
-    li {
-      margin: 8px 0;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    a {
-      color: #0066cc;
-      text-decoration: none;
-      font-size: 16px;
-      flex-grow: 1;
-    }
-
-    a:hover { text-decoration: underline; }
-
-    body.dark-mode a { color: #90caf9; }
-  </style>
-</head>
-<body>
-  <button class="dark-mode-toggle" id="darkModeBtn">🌙 Dark Mode</button>
-
-  <h1>RC Battery Tester</h1>
-
-  <div class="control-box">
-    <div class="testname">
-      <label for="testName">Test name:</label>
-      <input type="text" id="testName" placeholder="test name e.g. 20251103_LRP_green">
-    </div>
-
-    <div class="toolbar">
-      <button id="startBtn" class="circle-btn">▶</button>
-      <button id="stopBtn" class="circle-btn">⏹</button>
-      <label for="countdown" style="font-weight:bold;">Countdown:</label>
-      <input type="text" id="countdown" value="0" readonly>
-    </div>
-
-
-    <div class="status-box">
-      <!-- Voltage + Cells stacked vertically -->
-      <div class="status-column">
-        <div class="status-item">
-          <label for="voltage">Voltage:</label>
-          <input type="text" id="voltage" value="-- V" readonly>
-        </div>
-        <div class="status-item">
-          <label for="cell1">Cell1:</label>
-          <input type="text" id="cell1" value="-- V" readonly>
-        </div>
-        <div class="status-item">
-          <label for="cell2">Cell2:</label>
-          <input type="text" id="cell2" value="-- V" readonly>
-        </div>
-      </div>
-
-      <!-- Other fields stay side-by-side -->
-      <div class="status-item">
-        <label for="current">Current:</label>
-        <input type="text" id="current" value="-- A" readonly>
-      </div>
-    </div>
-  </div>
-
-  <ul id="fileList">
-    <li><a href="file:///C:/work/dokument.pdf">dokument.pdf</a></li>
-    <li><a href="file:///C:/work/obrazok.png">obrazok.png</a></li>
-    <li><a href="file:///C:/work/log1.txt">log1.txt</a></li>
-    <li><a href="file:///C:/work/log2.txt">log2.txt</a></li>
-    <li><a href="file:///C:/work/log3.txt">log3.txt</a></li>
-    <li><a href="file:///C:/work/setup.ini">setup.ini</a></li>
-    <li><a href="file:///C:/work/data.csv">data.csv</a></li>
-    <li><a href="file:///C:/work/script.py">script.py</a></li>
-    <li><a href="file:///C:/work/report.docx">report.docx</a></li>
-    <li><a href="file:///C:/work/archive.zip">archive.zip</a></li>
-  </ul>
-
-  <script>
-    // --- dark mode toggle ---
-    document.getElementById("darkModeBtn").addEventListener("click", () => {
-      document.body.classList.toggle("dark-mode");
-    });
-
-    // --- ESP32-style data fetching ---
-    let autoRefreshInterval = null;
-
-    function refreshData() {
-      fetch('/data')
-        .then(response => response.json())
-        .then(data => {
-          // update dynamic fields from ESP32 JSON
-          document.getElementById("voltage").value = data.voltage + " V";
-          document.getElementById("cell1").value = data.cell1 + " V";
-          document.getElementById("cell2").value = data.cell2 + " V";
-          document.getElementById("current").value = data.current + " A";
-          document.getElementById("countdown").value = data.countdown + " sec";
-
-        })
-        .catch(err => console.error('Error fetching data:', err));
-    }
-
-    function toggleAutoRefresh() {
-      if (autoRefreshInterval) {
-        clearInterval(autoRefreshInterval);
-        autoRefreshInterval = null;
-      } else {
-        refreshData();
-        autoRefreshInterval = setInterval(refreshData, 5000);
-      }
-    }
-
-    document.getElementById("startBtn").addEventListener("click", () => {
-      toggleAutoRefresh();
-    });
-
-    document.getElementById("stopBtn").addEventListener("click", () => {
-      if (autoRefreshInterval) clearInterval(autoRefreshInterval);
-      autoRefreshInterval = null;
-    });
-
-    // initial fetch + periodic update
-    refreshData();
-    setInterval(refreshData, 10000);
-  </script>
-</body>
-</html>
-)rawliteral";
 
 // Get uptime string
 char* get_uptime_string() {
@@ -431,15 +97,28 @@ esp_err_t test_get_handler(httpd_req_t *req) {
     ESP_LOGI(TAG, ".......... TEST PAGE REQUEST RECEIVED ..............");
     ESP_LOGI(TAG, "%s", req->uri);
 
-    ESP_LOGI(TAG, ".. Response by page ..............");
+    FILE *f = Spiffs::Open("webpage.html");
+    if (f == NULL) {
+      httpd_resp_send_500(req);
+      return ESP_FAIL;
+    }
 
-    char *html = (char*)malloc(strlen(HTML_PAGE) + 500);
+    fseek(f, 0, SEEK_END);  
+    long size = ftell(f);
+    rewind(f);
+
+    char *html = (char*)malloc(size + 500);
     if (!html) {
         httpd_resp_send_500(req);
         return ESP_FAIL;
     }
 
-    strcpy(html, HTML_PAGE);
+    html[0] = '\0';  // start with an empty string
+
+    char line[128];
+    while (fgets(line, sizeof(line), f)) {
+        strcat(html, line);  // append each line
+    }
     
     // Replace placeholders
     char temp[50];
@@ -637,46 +316,14 @@ void start_webserver(void) {
 extern "C" void app_main(void)
 {
 
-   esp_vfs_spiffs_conf_t conf = {
-        .base_path = "/spiffs",
-        .partition_label = NULL,
-        .max_files = 5,
-        .format_if_mount_failed = true
-    };
-
-    esp_err_t ret = esp_vfs_spiffs_register(&conf);
-
-    if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to mount or format SPIFFS (%s)", esp_err_to_name(ret));
-        return;
-    }
-
-    size_t total = 0, used = 0;
-    ret = esp_spiffs_info(NULL, &total, &used);
-    if (ret == ESP_OK) {
-        ESP_LOGI(TAG, "SPIFFS total: %d bytes, used: %d bytes", total, used);
-    }
-
-    // Try opening the file you added
-    FILE *f = fopen("/spiffs/webpage.html", "r");
-    if (f == NULL) {
-        ESP_LOGE(TAG, "Failed to open file for reading");
-        return;
-    }
-
-    char line[128];
-    ESP_LOGI(TAG, "Contents of /spiffs/config.txt:");
-    while (fgets(line, sizeof(line), f)) {
-        printf("%s", line);
-    }
-    fclose(f);
-
-    esp_vfs_spiffs_unregister(NULL);
-    ESP_LOGI(TAG, "SPIFFS unmounted");
-
+  if (!Spiffs::Activate()) {
+    ESP_LOGI (TAG, "Flash memory activation failed !");
+    return;
+  }
+  
     ///////////////////////////////////
 // Initialize NVS
-    ret = nvs_flash_init();
+    esp_err_t ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
         ESP_ERROR_CHECK(nvs_flash_erase());
         ret = nvs_flash_init();
@@ -706,9 +353,7 @@ extern "C" void app_main(void)
     }
 
     ///////////////////////////////////
-
-    printf("ESP32-C6 ADC Test with new API\n");
-    
+  
     // Try the new ADC API for ESP32-C6
     adc_oneshot_unit_handle_t adc1_handle;
     adc_oneshot_unit_init_cfg_t init_config1 = {
@@ -783,4 +428,6 @@ extern "C" void app_main(void)
     printf("End of program ... now.\n");
     fflush(stdout);
     //esp_restart();
+
+    Spiffs::Deactivate();
 }

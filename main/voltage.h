@@ -20,7 +20,8 @@
 #include "esp_adc/adc_cali_scheme.h"
 #include <esp_log.h>
 
-static const char *TAG = "MULTI_GPIO_READ";
+#include "defines.h"
+
 
 // GPIO to ADC channel mapping
 typedef struct {
