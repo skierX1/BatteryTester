@@ -1,0 +1,2 @@
+idf.py spiffs_create_partition_image spiffs spiffs_image
+

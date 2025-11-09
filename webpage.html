@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Value Reader</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .container { max-width: 600px; margin: 0 auto; }
+        input[type="text"], input[type="url"] { 
+            width: 100%; 
+            padding: 10px; 
+            margin: 5px 0; 
+            border: 1px solid #ddd; 
+        }
+        input[readonly] { 
+            background-color: #f0f0f0; 
+            color: #333; 
+        }
+        button { 
+            padding: 10px 20px; 
+            margin: 10px 5px 10px 0; 
+            background: #007cba; 
+            color: white; 
+            border: none; 
+            cursor: pointer; 
+        }
+        button:hover { background: #005a87; }
+        .value-box { 
+            background: #f9f9f9; 
+            padding: 15px; 
+            margin: 20px 0; 
+            border-left: 4px solid #007cba; 
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Simple Web Value Reader</h1>
+        
+        <div>
+            <label>Data Source URL:</label>
+            <input type="url" id="urlInput" value="https://api.coindesk.com/v1/bpi/currentprice.json" placeholder="Enter URL containing JSON data">
+        </div>
+        
+        <div>
+            <label>Value Path:</label>
+            <input type="text" id="pathInput" value="bpi.USD.rate" placeholder="e.g., bpi.USD.rate">
+        </div>
+        
+        <button onclick="fetchData()">Get Value</button>
+        <button onclick="toggleAutoRefresh()" id="toggleRefresh">Auto-Refresh Every 5s</button>
+        
+        <div class="value-box">
+            <label>Current Value:</label>
+            <input type="text" id="valueOutput" readonly placeholder="Value will appear here">
+        </div>
+        
+        <div>
+            <small>Last updated: <span id="timestamp">Never</span></small>
+        </div>
+    </div>
+
+    <script>
+        let autoRefresh = null;
+        
+        async function fetchData() {
+            const url = document.getElementById('urlInput').value;
+            const path = document.getElementById('pathInput').value;
+            const output = document.getElementById('valueOutput');
+            const timestamp = document.getElementById('timestamp');
+            
+            if (!url) {
+                alert('Please enter a URL');
+                return;
+            }
+            
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                // Get value by path
+                const value = path.split('.').reduce((obj, key) => obj?.[key], data);
+                
+                if (value !== undefined) {
+                    output.value = value.toString();
+                    timestamp.textContent = new Date().toLocaleTimeString();
+                } else {
+                    output.value = 'Value not found';
+                }
+            } catch (error) {
+                output.value = 'Error fetching data';
+                console.error('Error:', error);
+            }
+        }
+        
+        function toggleAutoRefresh() {
+            const button = document.getElementById('toggleRefresh');
+            
+            if (autoRefresh) {
+                clearInterval(autoRefresh);
+                autoRefresh = null;
+                button.textContent = 'Auto-Refresh Every 5s';
+                button.style.background = '#007cba';
+            } else {
+                fetchData(); // Fetch immediately
+                autoRefresh = setInterval(fetchData, 5000); // Then every 5 seconds
+                button.textContent = 'Stop Auto-Refresh';
+                button.style.background = '#dc3545';
+            }
+        }
+        
+        // Initial fetch
+        fetchData();
+    </script>
+</body>
+</html>
