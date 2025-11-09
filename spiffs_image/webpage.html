@@ -299,28 +299,58 @@
         .catch(err => console.error('Error fetching data:', err));
     }
 
-    function toggleAutoRefresh() {
-      if (autoRefreshInterval) {
-        clearInterval(autoRefreshInterval);
-        autoRefreshInterval = null;
-      } else {
-        refreshData();
-        autoRefreshInterval = setInterval(refreshData, 5000);
-      }
-    }
+    function startTest() {
+	  fetch('/startbtn')
+		.then(response => response.json())
+		.then(data => {
+		  // update dynamic fields from ESP32 JSON
+		  const btnstart = document.getElementById("startBtn");
+		  const btnstop = document.getElementById("stopBtn");
+		  if (data.status === "ok") {
+			btnstart.disabled = true;   // disable the button
+			btnstop.disabled  = false;    // disable the button
+		  } else {
+			btnstart.disabled = false;   
+			btnstop.disabled  = false;  
+		  }
+		  btnstart.disabled = true;   
+		  btnstop.disabled  = true;
+		})
+		.catch(err => console.error('Error fetching data:', err));
+	}
+	
+	function stopTest() {
+	  fetch('/stopbtn')
+		.then(response => response.json())
+		.then(data => {
+		  // update dynamic fields from ESP32 JSON
+		  const btnstart = document.getElementById("startBtn");
+		  const btnstop = document.getElementById("stopBtn");
+		  
+		  if (data.status === "ok") {
+			btnstart.disabled = false;   // disable the button
+			btnstop.disabled  = true;    // disable the button
+		  } else {
+			btnstart.disabled = true;   
+			btnstop.disabled  = false;  
+		  }
+		  btnstart.disabled = true;   
+		  btnstop.disabled  = true;
+		})
+		.catch(err => console.error('Error fetching data:', err));
+	}
 
     document.getElementById("startBtn").addEventListener("click", () => {
-      toggleAutoRefresh();
+      startTest();
     });
 
     document.getElementById("stopBtn").addEventListener("click", () => {
-      if (autoRefreshInterval) clearInterval(autoRefreshInterval);
-      autoRefreshInterval = null;
+      stopTest();
     });
 
     // initial fetch + periodic update
     refreshData();
-    setInterval(refreshData, 3000);
+    setInterval(refreshData, 2000);
   </script>
 </body>
 </html>

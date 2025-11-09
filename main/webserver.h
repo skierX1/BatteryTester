@@ -31,6 +31,8 @@ public:
             httpd_register_uri_handler(server, &Webserver::root);
             httpd_register_uri_handler(server, &Webserver::test);
             httpd_register_uri_handler(server, &Webserver::data);
+            httpd_register_uri_handler(server, &Webserver::startbtn);
+            httpd_register_uri_handler(server, &Webserver::stopbtn);
             httpd_register_uri_handler(server, &Webserver::download);
             ESP_LOGI(TAG, "HTTP server started successfully");
         } else {
@@ -149,7 +151,7 @@ public:
     static constexpr httpd_uri_t test = {
         .uri       = "/test",
         .method    = HTTP_GET,
-        .handler   = test_get_handler,
+        .handler   = Webserver::test_get_handler,
         .user_ctx  = NULL
     };
 
@@ -171,11 +173,11 @@ public:
     static constexpr httpd_uri_t download = {
         .uri       = "/download",
         .method    = HTTP_GET,
-        .handler   = download_get_handler,
+        .handler   = Webserver::download_get_handler,
         .user_ctx  = NULL
     };
 
-    // HTTP request handler for JSON data
+    
     static esp_err_t data_get_handler(httpd_req_t *req) {
         char json_response[256];
 
@@ -198,7 +200,51 @@ public:
     static constexpr httpd_uri_t data = {
         .uri       = "/data",
         .method    = HTTP_GET,
-        .handler   = data_get_handler,
+        .handler   = Webserver::data_get_handler,
+        .user_ctx  = NULL
+    };
+
+    static esp_err_t startbtn_handler(httpd_req_t *req) {
+        char json_response[256];
+
+        ESP_LOGI(TAG, "... STARTBTN RECEIVED ...");
+        ESP_LOGI(TAG, "%s", req->uri);
+
+        snprintf(json_response, sizeof(json_response),
+                "{\"status\":\"%s\"}",
+                "ok");
+        
+        httpd_resp_set_type(req, "application/json");
+        httpd_resp_send(req, json_response, strlen(json_response));
+        
+        return ESP_OK;
+    };
+    static constexpr httpd_uri_t startbtn = {
+        .uri       = "/startbtn",
+        .method    = HTTP_GET,
+        .handler   = Webserver::startbtn_handler,
+        .user_ctx  = NULL
+    };
+
+    static esp_err_t stopbtn_handler(httpd_req_t *req) {
+        char json_response[256];
+
+        ESP_LOGI(TAG, "... STOPBTN RECEIVED ...");
+        ESP_LOGI(TAG, "%s", req->uri);
+
+        snprintf(json_response, sizeof(json_response),
+                "{\"status\":\"%s\"}",
+                "ok");
+        
+        httpd_resp_set_type(req, "application/json");
+        httpd_resp_send(req, json_response, strlen(json_response));
+        
+        return ESP_OK;
+    };
+    static constexpr httpd_uri_t stopbtn = {
+        .uri       = "/stopbtn",
+        .method    = HTTP_GET,
+        .handler   = Webserver::stopbtn_handler,
         .user_ctx  = NULL
     };
 };
