@@ -1,8 +1,6 @@
 #ifndef __DEFINES_H
 #define __DEFINES_H
 
-const char *TAG = "BATTERY_TESTER";
-
 // WiFi configuration
 #define WIFI_SSID      "ESP32-C6-Batt"
 #define WIFI_PASS      ""

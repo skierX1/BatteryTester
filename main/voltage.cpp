@@ -1,5 +1,15 @@
 
 #include "voltage.h";
+#include "driver/adc.h"
+#include <esp_adc_cal.h>
+#include "esp_log.h"
+#include "esp_adc/adc_oneshot.h"
+#include <driver/adc.h>
+#include "esp_adc/adc_cali.h"
+#include "esp_adc/adc_cali_scheme.h"
+#include "esp_adc_cal.h"
+
+extern const char *TAG;
 
 VoltageReader::VoltageReader() {
     setup_adc_channels();
@@ -50,22 +60,39 @@ bool VoltageReader::init_adc_calibration(adc_unit_t unit, adc_channel_t channel,
 }
 
 void VoltageReader::setup_adc_channels() {
-    // Configure ADC width first
-    adc1_config_width(ADC_WIDTH_BIT_12);
+    adc_oneshot_unit_handle_t adc1_handle;
+    adc_oneshot_unit_init_cfg_t init_config1 = {
+        .unit_id = ADC_UNIT_1,
+    };
+
+    esp_err_t ret = adc_oneshot_new_unit(&init_config1, &adc1_handle);
+    if (ret == ESP_OK) {
+        printf("ADC unit initialized successfully!\n");
+    } else {
+        printf("ADC init failed: %d\n", ret);
+        return;
+    }
+
+    adc_oneshot_chan_cfg_t chan_cfg = {
+        .atten = ADC_ATTEN_DB_11,
+        .bitwidth = ADC_BITWIDTH_DEFAULT        
+    };
 
     for (int i = 0; i < NUM_GPIOs; i++) {
-        // Configure attenuation for each channel
-        adc1_config_channel_atten(gpio_mappings[i].adc_channel, ADC_ATTEN_DB_11);
-        
-        // Initialize calibration for each channel
+        // Configure channel using new API
+        ESP_ERROR_CHECK(adc_oneshot_config_channel(adc1_handle, gpio_mappings[i].adc_channel, &chan_cfg));
+
+        // Initialize calibration (driver_ng compatible)
         adc_channels[i].calibrated = init_adc_calibration(
-            ADC_UNIT_1, 
-            (adc_channel_t)gpio_mappings[i].adc_channel, 
-            ADC_ATTEN_DB_12, 
+            ADC_UNIT_1,
+            (adc_channel_t)gpio_mappings[i].adc_channel,
+            ADC_ATTEN_DB_11,
             &adc_channels[i].cali_handle
         );
+
+        adc_channels[i].handle = adc1_handle;
         adc_channels[i].label = gpio_mappings[i].label;
-        adc_channels[i].channel = gpio_mappings[i].adc_channel;
+        adc_channels[i].adc_channel = gpio_mappings[i].adc_channel;
 
         if (adc_channels[i].calibrated) {
             ESP_LOGI(TAG, "%s calibrated successfully", gpio_mappings[i].label);
@@ -75,13 +102,23 @@ void VoltageReader::setup_adc_channels() {
     }
 }
 
+
+
 void VoltageReader::read_adc_channel(int channel_index) {
     // Read multiple samples for better accuracy
     uint32_t adc_reading = 0;
     const int samples = 64;
 
     for (int i = 0; i < samples; i++) {
-        adc_reading += adc1_get_raw(adc_channels[channel_index].channel);
+        //adc_reading += adc1_get_raw(adc_channels[channel_index].channel);
+
+         int raw = 0;
+        // Use driver_ng API for reading
+        ESP_ERROR_CHECK(adc_oneshot_read(adc_channels[channel_index].handle,
+                                         adc_channels[channel_index].adc_channel,
+                                         &raw));
+        adc_reading += raw;
+
     }
     adc_reading /= samples;
     voltage[channel_index].raw = adc_reading;

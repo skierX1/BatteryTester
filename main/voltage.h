@@ -18,6 +18,7 @@
 #include <driver/adc.h>
 #include "esp_adc/adc_cali.h"
 #include "esp_adc/adc_cali_scheme.h"
+#include "esp_adc/adc_oneshot.h"
 #include <esp_log.h>
 
 #include "defines.h"
@@ -26,15 +27,17 @@
 // GPIO to ADC channel mapping
 typedef struct {
     gpio_num_t gpio;
-    adc1_channel_t adc_channel;
+    adc_channel_t adc_channel;
     const char* label;
 } gpio_adc_mapping_t;
 
 typedef struct {
-    adc_cali_handle_t cali_handle;
-    bool calibrated;
-    const char* label;
-    adc1_channel_t channel;
+    gpio_num_t gpio;                     // GPIO pin
+    adc_channel_t adc_channel;          // ADC channel
+    const char* label;                   // Label for identification
+    adc_oneshot_unit_handle_t handle;    // ADC unit handle (driver_ng)
+    adc_cali_handle_t cali_handle;       // Calibration handle
+    bool calibrated;                     // Flag if calibration is available
 } adc_channel_info_t;
 
 const int NUM_GPIOs=3;
@@ -60,9 +63,9 @@ class VoltageReader {
     // Note: GPIO1 is typically used for debug output
     // Note: GPIO2 is also used for boot mode in some cases
     const gpio_adc_mapping_t gpio_mappings[NUM_GPIOs] = {
-        {GPIO_NUM_2, ADC1_CHANNEL_2, "GPIO2"},  // battery cell 1
-        {GPIO_NUM_3, ADC1_CHANNEL_3, "GPIO3"},  // battery cell 2
-        {GPIO_NUM_4, ADC1_CHANNEL_4, "GPIO4"},  // battery overall voltage
+        {GPIO_NUM_2, ADC_CHANNEL_2, "GPIO2"},  // battery cell 1
+        {GPIO_NUM_3, ADC_CHANNEL_3, "GPIO3"},  // battery cell 2
+        {GPIO_NUM_4, ADC_CHANNEL_4, "GPIO4"},  // battery overall voltage
     };    
     adc_channel_info_t adc_channels[NUM_GPIOs];
 

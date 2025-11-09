@@ -11,6 +11,8 @@
 #include "esp_log.h"
 #include <esp_log.h>
 
+extern const char *TAG;
+
 class Webserver {
 public:
     Webserver() {};
@@ -24,14 +26,15 @@ public:
         ESP_LOGI(TAG, "Starting HTTP server on port: '%d'", config.server_port);
         if (httpd_start(&server, &config) == ESP_OK) {
             // Register URI handlers
-            httpd_register_uri_handler(server, &root);
-            httpd_register_uri_handler(server, &test);
-            httpd_register_uri_handler(server, &data);
-            httpd_register_uri_handler(server, &download);
+            httpd_register_uri_handler(server, &Webserver::root);
+            httpd_register_uri_handler(server, &Webserver::test);
+            httpd_register_uri_handler(server, &Webserver::data);
+            httpd_register_uri_handler(server, &Webserver::download);
             ESP_LOGI(TAG, "HTTP server started successfully");
         } else {
             ESP_LOGE(TAG, "Error starting HTTP server!");
         }
+        
     };
 
     static char* get_uptime_string() {

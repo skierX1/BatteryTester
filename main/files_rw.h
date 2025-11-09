@@ -6,6 +6,8 @@
 
 #include "defines.h"
 
+extern const char *TAG;
+
 class Spiffs {
 public:
     Spiffs(){};

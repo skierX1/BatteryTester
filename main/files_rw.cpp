@@ -33,6 +33,8 @@
 #include "esp_netif.h"
 #include "esp_wifi.h"
 
+extern const char *TAG;
+
 char* Read(FILE *f) {    
     char line[128];
     ESP_LOGI(TAG, "Contents of /spiffs/config.txt:");
