@@ -24,25 +24,14 @@
 #include "esp_spiffs.h"
 
 //------------
-#include <stdio.h>
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "esp_system.h"
-#include "driver/gpio.h"
 
 // For ADC in ESP32-C6, try including through driver
 #include "esp_adc/adc_oneshot.h"
-#include "esp_adc/adc_cali.h"
-#include "esp_adc/adc_cali_scheme.h"
 
 /////////////////////////////////////////////////////
-#include <stdio.h>
+
 #include <string.h>
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "esp_system.h"
 #include "esp_event.h"
-#include "esp_log.h"
 #include "esp_http_server.h"
 #include "nvs_flash.h"
 #include "esp_netif.h"
@@ -50,8 +39,8 @@
 
 
 // WiFi configuration
-#define WIFI_SSID      "ESP32-C6-Sensor"
-#define WIFI_PASS      "123456789"
+#define WIFI_SSID      "ESP32-C6"
+#define WIFI_PASS      ""
 #define WIFI_IP        "192.168.4.1"
 #define MAX_STA_CONN   4
 
