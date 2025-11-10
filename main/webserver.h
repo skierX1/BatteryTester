@@ -189,12 +189,14 @@ public:
         ESP_LOGI(TAG, "%s", req->uri);
 
         snprintf(json_response, sizeof(json_response),
-                "{\"voltage\":%.2f,\"cell1\":%.2f,\"cell2\":%.2f,\"current\":%.2f,\"countdown\":%d}",
+                "{\"voltage\":%.2f,\"cell1\":%.2f,\"cell2\":%.2f,\"current\":%.2f,\"countdown\":%d,\"test_running\":%d}",
                 voltage_reader_->voltage[1].voltage,
                 voltage_reader_->voltage[0].voltage,
                 voltage_reader_->voltage[1].voltage - voltage_reader_->voltage[0].voltage,
                 test_->test_running ? voltage_reader_->voltage[1].voltage / 0.2 : 0,
-                test_->countdown);
+                test_->countdown,
+                test_->test_running ? 1 : 0
+                );
         
         httpd_resp_set_type(req, "application/json");
         httpd_resp_send(req, json_response, strlen(json_response));

@@ -10,7 +10,7 @@ void Test::run() {
     if (!test_running && test_start) {
         test_start = false;
         test_running = true;
-        countdown = 10;
+        countdown = 20;
     }
 
     if (test_stop) {

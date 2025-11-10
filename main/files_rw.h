@@ -3,6 +3,8 @@
 
 #include <stdio.h>
 #include <string>
+#include <dirent.h>
+#include <string.h>
 
 #include "defines.h"
 
@@ -14,6 +16,29 @@ public:
     ~Spiffs(){};
 
     char* Read(FILE *f);
+
+
+
+    static void ListCSVFiles() {
+        const char* path = "/spiffs/data";
+        DIR* dir = opendir(path);
+        if (!dir) {
+            ESP_LOGE(TAG, "Failed to open directory: %s", path);
+            return;
+        }
+
+        struct dirent* entry;
+        while ((entry = readdir(dir)) != NULL) {
+            // Skontrolujeme, či súbor má príponu ".csv"
+            const char* ext = strrchr(entry->d_name, '.');
+            if (ext && strcmp(ext, ".csv") == 0) {
+                ESP_LOGI(TAG, "Found CSV file: %s", entry->d_name);
+            }
+        }
+
+        closedir(dir);
+    }
+
 
     static FILE* Open(char* filename){
         // Try opening the file you added        

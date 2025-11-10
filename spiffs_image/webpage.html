@@ -111,6 +111,23 @@
       margin-bottom: 15px;
     }
 
+	.countdown-frame {
+	  display: inline-flex;
+	  align-items: center;
+	  gap: 8px;
+	  padding: 8px 12px;
+	  border: 2px solid var(--border-color);
+	  border-radius: 10px;
+	  background: var(--card-bg);
+	  transition: border-color 0.3s, background-color 0.3s;
+	}
+	
+	/* Optional: green variant */
+	.countdown-frame.green {
+	  border-color: #4caf50;
+	  background: rgba(76, 175, 80, 0.1);
+	}
+
     .circle-btn {
       width: 70px;
       height: 70px;
@@ -148,6 +165,24 @@
       background: #333;
       color: #f1f1f1;
     }
+
+	#countdown {
+	  width: 100px;
+	  text-align: center;
+	  padding: 8px;
+	  font-weight: bold;
+	  font-size: 27px; /* 1.5× bigger than 18px base size */
+	  background: #fff;
+	  border: 1px solid var(--border-color);
+	  border-radius: 8px;
+	  color: #000;
+	}
+
+	/* Dark mode for countdown field */
+	body.dark-mode #countdown {
+	  background: #333;
+	  color: #f1f1f1;
+}
 
     .status-box {
       display: flex;
@@ -232,8 +267,10 @@
     <div class="toolbar">
       <button id="startBtn" class="circle-btn">▶</button>
       <button id="stopBtn" class="circle-btn">⏹</button>
-      <label for="countdown" style="font-weight:bold;">Countdown:</label>
-      <input type="text" id="countdown" value="0" readonly>
+	  <div class="countdown-frame">
+		  <label for="countdown" style="font-weight:bold;">Countdown:</label>
+		  <input type="text" id="countdown" value="0" readonly>
+	  </div>
     </div>
 
 
@@ -294,6 +331,13 @@
           document.getElementById("cell2").value = data.cell2 + " V";
           document.getElementById("current").value = data.current + " A";
           document.getElementById("countdown").value = data.countdown + " sec";
+
+		  if (data.test_running == 1) {
+			document.querySelector('.countdown-frame').classList.add('green');  // turn green	
+		  }
+		  else {	
+			document.querySelector('.countdown-frame').classList.remove('green');  // revert
+		  }
 
         })
         .catch(err => console.error('Error fetching data:', err));

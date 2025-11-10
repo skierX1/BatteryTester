@@ -35,7 +35,7 @@
 
 extern const char *TAG;
 
-char* Read(FILE *f) {    
+char* Spiffs::Read(FILE *f) {    
     char line[128];
     ESP_LOGI(TAG, "Contents of /spiffs/config.txt:");
     while (fgets(line, sizeof(line), f)) {
