@@ -299,8 +299,12 @@
         .catch(err => console.error('Error fetching data:', err));
     }
 
-    function startTest() {
-	  fetch('/startbtn')
+    function startTest() { 
+	  const inputField = document.getElementById("testName");
+	  let rawValue = inputField.value;
+	  let cleanedValue = rawValue.replace(/[^a-zA-Z0-9]/g, '');
+	  inputField.value = cleanedValue;
+	  fetch('/startbtn?name=' + cleanedValue)
 		.then(response => response.json())
 		.then(data => {
 		  // update dynamic fields from ESP32 JSON
@@ -313,8 +317,8 @@
 			btnstart.disabled = false;   
 			btnstop.disabled  = false;  
 		  }
-		  btnstart.disabled = true;   
-		  btnstop.disabled  = true;
+		  btnstart.disabled = false;   
+		  btnstop.disabled  = false;
 		})
 		.catch(err => console.error('Error fetching data:', err));
 	}
@@ -331,22 +335,21 @@
 			btnstart.disabled = false;   // disable the button
 			btnstop.disabled  = true;    // disable the button
 		  } else {
-			btnstart.disabled = true;   
+			btnstart.disabled = false;   
 			btnstop.disabled  = false;  
 		  }
-		  btnstart.disabled = true;   
-		  btnstop.disabled  = true;
+		  btnstart.disabled = false;   
+		  btnstop.disabled  = false;
 		})
 		.catch(err => console.error('Error fetching data:', err));
 	}
 
-    document.getElementById("startBtn").addEventListener("click", () => {
-      startTest();
-    });
+    document.getElementById("startBtn").addEventListener("click", () => {startTest()});
+	document.getElementById("startBtn").addEventListener("click", (e) => e.currentTarget.setAttribute('disabled', true));
+	
 
-    document.getElementById("stopBtn").addEventListener("click", () => {
-      stopTest();
-    });
+    document.getElementById("stopBtn").addEventListener("click", () => {stopTest(); });
+	document.getElementById("stopBtn").addEventListener("click", (e) => e.currentTarget.setAttribute('disabled', true));
 
     // initial fetch + periodic update
     refreshData();

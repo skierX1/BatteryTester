@@ -36,13 +36,70 @@
 #include "webserver.h"
 #include "wifi.h"
 
+#include "test.h"
+
 const char *TAG = "BATTERY_TESTER";
 extern VoltageReader* voltage_reader_;
+extern Test* test_;
+
+#include "driver/ledc.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+
+#define LED_GPIO    8
+#define LEDC_CHANNEL LEDC_CHANNEL_0
+#define LEDC_TIMER   LEDC_TIMER_0
 
 extern "C" void app_main(void)
 {
+
+    
+    // just turning on, not blinking .. not possible to set it off !!!
+    /*
+    // 1. Configure LEDC timer
+    ledc_timer_config_t timer = {
+        .speed_mode = LEDC_LOW_SPEED_MODE,        
+        .duty_resolution = LEDC_TIMER_8_BIT,
+        .timer_num = LEDC_TIMER,
+        .freq_hz = 5000,
+        .clk_cfg = LEDC_AUTO_CLK
+    };
+    ledc_timer_config(&timer);
+
+    // 2. Configure LEDC channel
+    ledc_channel_config_t channel = {
+        .gpio_num = LED_GPIO,
+        .speed_mode = LEDC_LOW_SPEED_MODE,
+        .channel = LEDC_CHANNEL,
+        .intr_type = LEDC_INTR_DISABLE,
+        .timer_sel = LEDC_TIMER,
+        .duty = 255,   // start OFF (active-low)
+        .hpoint = 0
+    };
+    ledc_channel_config(&channel);
+
+    // 3. Blink loop
+    bool led_on = false;
+    while (true) {
+        printf("Tick  ......");
+        if (led_on) {
+            // Turn LED ON (active-low)            
+            ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL, 0);
+        } else {
+            // Turn LED OFF             
+            //ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL, 1);
+        }
+        //vTaskDelay(pdMS_TO_TICKS(200)); // 500 ms delay
+        ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL);
+
+        led_on = !led_on;  // toggle state
+        vTaskDelay(pdMS_TO_TICKS(500)); // 500 ms delay
+    }
+*/
     VoltageReader voltage_reader;
+    Test test;
     voltage_reader_ = &voltage_reader;
+    test_ = &test;
 
     // Initialize spiffs partition
     if (!Spiffs::Activate()) {
@@ -96,21 +153,24 @@ extern "C" void app_main(void)
     //------------------------------------------
     
     ESP_LOGI(TAG, "Starting multi-GPIO voltage reading");
-    
+
     // Main reading loop
+
     while(true) {
-        printf("\n==== CITAM NAPATIA CITAM AKO BLAZON ======================\n");
+        test_->run();
+        // Toggle LEDs — invert if active-low
+        //printf("\n==== CITAM NAPATIA CITAM AKO BLAZON ======================\n");
         voltage_reader.ReadVoltage();
         
-        for (int i = 0; i < NUM_GPIOs; i++) {
-            ESP_LOGI(TAG, "%s - Raw: %lu, Voltage: %.3fV, Calibrated: %s", 
-                    voltage_reader.adc_channels[i].label,
-                    voltage_reader.voltage[i].raw, 
-                    voltage_reader.voltage[i].voltage,
-                    voltage_reader.voltage[i].calibrated ? "Yes" : "No");
-        }
+        //for (int i = 0; i < NUM_GPIOs; i++) {
+        //    ESP_LOGI(TAG, "%s - Raw: %lu, Voltage: %.3fV, Calibrated: %s", 
+        //            voltage_reader.adc_channels[i].label,
+        //            voltage_reader.voltage[i].raw, 
+        //            voltage_reader.voltage[i].voltage,
+        //            voltage_reader.voltage[i].calibrated ? "Yes" : "No");
+        //}
         
-        printf("================================================================\n");
+        //printf("================================================================\n");
         vTaskDelay(pdMS_TO_TICKS(500));
     }
  

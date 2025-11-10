@@ -39,10 +39,10 @@ typedef struct {
     bool calibrated;                     // Flag if calibration is available
 } adc_channel_info_t;
 
-const int NUM_GPIOs=3;
+const int NUM_GPIOs=2;
 
 class VoltageReader {
-    public:
+    public:    
 
     VoltageReader();
     ~VoltageReader();
@@ -57,14 +57,13 @@ class VoltageReader {
     void setup_adc_channels();
     void read_adc_channel(int channel_index);
     void cleanup_adc_calibration();
-    void ReadVoltage();
+    void ReadVoltage();    
     
     // Note: GPIO1 is typically used for debug output
     // Note: GPIO2 is also used for boot mode in some cases
     const gpio_adc_mapping_t gpio_mappings[NUM_GPIOs] = {
-        {GPIO_NUM_2, ADC_CHANNEL_2, "GPIO2"},  // battery cell 1
-        {GPIO_NUM_3, ADC_CHANNEL_3, "GPIO3"},  // battery cell 2
-        {GPIO_NUM_4, ADC_CHANNEL_4, "GPIO4"},  // battery overall voltage
+        {GPIO_NUM_2, ADC_CHANNEL_2, "GPIO2"},  
+        {GPIO_NUM_3, ADC_CHANNEL_3, "GPIO3"},  
     };    
     adc_channel_info_t adc_channels[NUM_GPIOs];
 

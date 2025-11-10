@@ -11,13 +11,17 @@
 #include "esp_log.h"
 #include <esp_log.h>
 #include "voltage.h"
+#include "test.h"
 
 extern const char *TAG;
 extern VoltageReader* voltage_reader_;
+extern Test* test_;
+
+class Test;
 
 class Webserver {
 public:
-    Webserver() {};
+    Webserver()  {};
     ~Webserver() {};
 
     static void start_webserver(void) {
@@ -189,8 +193,8 @@ public:
                 voltage_reader_->voltage[1].voltage,
                 voltage_reader_->voltage[0].voltage,
                 voltage_reader_->voltage[1].voltage - voltage_reader_->voltage[0].voltage,
-                voltage_reader_->voltage[1].voltage / 0.2,
-                4);
+                test_->test_running ? voltage_reader_->voltage[1].voltage / 0.2 : 0,
+                test_->countdown);
         
         httpd_resp_set_type(req, "application/json");
         httpd_resp_send(req, json_response, strlen(json_response));
@@ -209,6 +213,20 @@ public:
 
         ESP_LOGI(TAG, "... STARTBTN RECEIVED ...");
         ESP_LOGI(TAG, "%s", req->uri);
+
+        
+        const char* key = "name=";
+        char* name = strstr(req->uri, key);  // find "name=" in the string
+        if (name == nullptr) {
+            printf("Cannot extract name !!!!!");                
+            test_->test_name = "";
+        }
+        else {
+            name += strlen(key);          // move pointer past "name="
+            printf("Extracted name: %s\n", name);
+            test_->test_name = name;
+            test_->test_start = true;
+        }
 
         snprintf(json_response, sizeof(json_response),
                 "{\"status\":\"%s\"}",
@@ -239,6 +257,8 @@ public:
         httpd_resp_set_type(req, "application/json");
         httpd_resp_send(req, json_response, strlen(json_response));
         
+        test_->test_stop = true;
+
         return ESP_OK;
     };
     static constexpr httpd_uri_t stopbtn = {
