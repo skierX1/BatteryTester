@@ -75,14 +75,16 @@ void Test::run() {
     int64_t now = esp_timer_get_time();  // microseconds since boot
     test_time_sec_ = now - test_start_time_;
 
+    if ( (now - time_last_run_)/1000000 < 0.5 )
+        return;
+    time_last_run_ = now;
+
     // stop when timer exceeds
     if (test_time_sec_ > test_max_time_sec) {
         test_stop = true;
-        test_time_sec_ = test_max_time_sec;
-        Spiffs::ListCSVFiles();
+        test_time_sec_ = test_max_time_sec;        
         return;
     }
-
 
     // open the csv file in append mode
     FILE *f = fopen(file_name.c_str(), "a");
@@ -92,18 +94,16 @@ void Test::run() {
     }
 
     //append values to csv file
-    double Vbatt = voltage_reader_->voltage[0].voltage;
-    double Vcell1 = voltage_reader_->voltage[1].voltage;
-    double R = 2.0;
+    double Vbatt = voltage_reader_->voltage[1].voltage;
+    double Vcell1 = voltage_reader_->voltage[0].voltage;
+    double R = 0.2;
 
     std::ostringstream time_str_stream;
-    time_str_stream << std::fixed << std::setprecision(1) << test_time_sec_ / 1000000;
+    time_str_stream << std::fixed << std::setprecision(1) << static_cast<double>(static_cast<double>(test_time_sec_) / 1000000.0);
 
     fprintf(f, "%s,%.3f,%.3f,%.2f\n",time_str_stream.str().c_str(),Vbatt,Vcell1,R);
 
     fclose(f);
-
-
 
     return;
 }

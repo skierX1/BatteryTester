@@ -299,18 +299,19 @@
     </div>
   </div>
 
-  <ul id="fileList">
-    <li><a href="file:///C:/work/dokument.pdf">dokument.pdf</a></li>
-    <li><a href="file:///C:/work/obrazok.png">obrazok.png</a></li>
-    <li><a href="file:///C:/work/log1.txt">log1.txt</a></li>
-    <li><a href="file:///C:/work/log2.txt">log2.txt</a></li>
-    <li><a href="file:///C:/work/log3.txt">log3.txt</a></li>
-    <li><a href="file:///C:/work/setup.ini">setup.ini</a></li>
-    <li><a href="file:///C:/work/data.csv">data.csv</a></li>
-    <li><a href="file:///C:/work/script.py">script.py</a></li>
-    <li><a href="file:///C:/work/report.docx">report.docx</a></li>
-    <li><a href="file:///C:/work/archive.zip">archive.zip</a></li>
-  </ul>
+  <table id="fileTable" border="1" style="border-collapse: collapse; background: var(--card-bg); border-radius: 10px; padding: 10px;">
+    <thead>
+      <tr>
+        <th style="padding: 5px 10px;">Filename</th>
+        <th style="padding: 5px 10px;">Test Duration</th>
+        <th style="padding: 5px 10px;">End Voltage</th>
+      </tr>
+    </thead>
+    <tbody id="fileTableBody">
+      <!-- Filled dynamically -->
+    </tbody>
+  </table>
+
 
   <script>
     // --- dark mode toggle ---
@@ -389,15 +390,37 @@
 	}
 
     document.getElementById("startBtn").addEventListener("click", () => {startTest()});
-	document.getElementById("startBtn").addEventListener("click", (e) => e.currentTarget.setAttribute('disabled', true));
-	
-
     document.getElementById("stopBtn").addEventListener("click", () => {stopTest(); });
-	document.getElementById("stopBtn").addEventListener("click", (e) => e.currentTarget.setAttribute('disabled', true));
 
     // initial fetch + periodic update
     refreshData();
-    setInterval(refreshData, 2000);
+	
+	    // --- fetch file list and fill table ---
+    function loadFileList() {
+      fetch('/filedir')
+        .then(response => response.json())
+        .then(data => {
+          const tbody = document.getElementById('fileTableBody');
+          tbody.innerHTML = '';
+          data.forEach(item => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+              <td style="padding:4px 10px;">
+                <a href="/download?file=${encodeURIComponent(item.filename)}" download>${item.filename}</a>
+              </td>
+              <td style="padding:4px 10px; text-align:right;">${item.length}</td>
+              <td style="padding:4px 10px; text-align:right;">${item.endvoltage}</td>
+            `;
+            tbody.appendChild(row);
+          });
+        })
+        .catch(err => console.error('Error fetching file list:', err));
+    }
+
+    // load once on page start
+    loadFileList();
+	
+    setInterval(refreshData, 600);
   </script>
 </body>
 </html>

@@ -5,6 +5,7 @@
 #include <sstream>
 #include <iomanip>
 #include <string>
+#include <vector>
 
 #include "esp_event.h"
 #include "esp_http_server.h"
@@ -42,6 +43,8 @@ public:
             httpd_register_uri_handler(server, &Webserver::startbtn);
             httpd_register_uri_handler(server, &Webserver::stopbtn);
             httpd_register_uri_handler(server, &Webserver::download);
+            httpd_register_uri_handler(server, &Webserver::filedir);
+            
             ESP_LOGI(TAG, "HTTP server started successfully");
         } else {
             ESP_LOGE(TAG, "Error starting HTTP server!");
@@ -96,8 +99,8 @@ public:
 
         FILE *f = Spiffs::Open("webpage.html");
         if (f == NULL) {
-        httpd_resp_send_500(req);
-        return ESP_FAIL;
+            httpd_resp_send_500(req);
+            return ESP_FAIL;
         }
 
         fseek(f, 0, SEEK_END);  
@@ -163,21 +166,101 @@ public:
         .user_ctx  = NULL
     };
 
-    static esp_err_t download_get_handler(httpd_req_t *req)
+    /*static esp_err_t download_get_handler(httpd_req_t *req)
     {
-        const char *response_data =
-            "time,temperature,humidity\n"
-            "12:00,24.3,60\n"
-            "13:00,25.1,58\n";
 
+        ESP_LOGI(TAG, "... DOWNLOAD_GETHANDLER RECEIVED ...");
+        ESP_LOGI(TAG, "%s", req->uri);
+
+        std::string filename;
+        
+        const char* key = "file=";
+        char* name = strstr(req->uri, key);  // find "file=" in the string
+        if (name == nullptr) {
+            ESP_LOGE(TAG, "Cannot extract filename !!!!!");                
+            httpd_resp_send_500(req);
+            return ESP_FAIL;                        
+        }
+        else {
+           name += strlen(key);  // move pointer past "file="
+            filename = name;
+
+            // ✅ Trim off any other query parameters (&...) or spaces
+            size_t amp = filename.find('&');
+            if (amp != std::string::npos) filename = filename.substr(0, amp);
+            size_t space = filename.find(' ');
+            if (space != std::string::npos) filename = filename.substr(0, space);
+
+             // ✅ Trim any trailing \r or \n
+            while (!filename.empty() && (filename.back() == '\n' || filename.back() == '\r'))
+                filename.pop_back();
+
+            ESP_LOGI(TAG, "Extracted filename: %s", filename.c_str());
+        }
+
+        std::ostringstream csv_response;
+        if (!GetCsvResponse(filename, csv_response)) {
+            ESP_LOGE(TAG, "Cannot extract filename !!!!!");
+            httpd_resp_send_500(req);
+            return ESP_FAIL;                        
+        }
+            
         // Set headers
         httpd_resp_set_type(req, "text/csv");
-        httpd_resp_set_hdr(req, "Content-Disposition", "attachment; filename=\"data.csv\"");
+        std::ostringstream attachment_hdr;
+        attachment_hdr << "attachment; filename=\"" << filename << "\"";
+        httpd_resp_set_hdr(req, "Content-Disposition", attachment_hdr.str().c_str());
 
         // Send data
-        httpd_resp_send(req, response_data, HTTPD_RESP_USE_STRLEN);
+        httpd_resp_send(req, csv_response.str().c_str(), HTTPD_RESP_USE_STRLEN);
         return ESP_OK;
-    };
+    };*/
+
+    static esp_err_t download_get_handler(httpd_req_t *req)
+    {
+        ESP_LOGI(TAG, "... DOWNLOAD_GETHANDLER RECEIVED ...");
+        ESP_LOGI(TAG, "%s", req->uri);
+
+        std::string filename;
+
+        const char* key = "file=";
+        char* name = strstr(req->uri, key);
+        if (name == nullptr) {
+            ESP_LOGE(TAG, "Cannot extract filename!");
+            httpd_resp_send_500(req);
+            return ESP_FAIL;
+        } 
+        name += strlen(key);
+        filename = name;
+
+        // Trim trailing parameters/spaces/newlines
+        size_t amp = filename.find('&');
+        if (amp != std::string::npos) filename = filename.substr(0, amp);
+        size_t space = filename.find(' ');
+        if (space != std::string::npos) filename = filename.substr(0, space);
+        while (!filename.empty() && (filename.back() == '\n' || filename.back() == '\r'))
+            filename.pop_back();
+
+        ESP_LOGI(TAG, "Extracted filename: %s", filename.c_str());
+
+        std::ostringstream csv_response;
+        if (!GetCsvResponse(filename, csv_response)) {
+            ESP_LOGE(TAG, "Cannot generate CSV for file: %s", filename.c_str());
+            httpd_resp_send_500(req);
+            return ESP_FAIL;
+        }
+
+        // ✅ Set headers before sending any data
+        httpd_resp_set_type(req, "text/csv");
+
+        char content_disp[128];
+        snprintf(content_disp, sizeof(content_disp), "attachment; filename=\"%s\"", filename.c_str());
+        httpd_resp_set_hdr(req, "Content-Disposition", content_disp);
+
+        httpd_resp_send(req, csv_response.str().c_str(), HTTPD_RESP_USE_STRLEN);
+
+        return ESP_OK;
+    }
     static constexpr httpd_uri_t download = {
         .uri       = "/download",
         .method    = HTTP_GET,
@@ -185,6 +268,57 @@ public:
         .user_ctx  = NULL
     };
 
+    
+    static bool GetCsvResponse (const std::string &filename, std::ostringstream &csv_response) {
+        std::string file_name = "/spiffs/data/" + filename;
+        FILE *f = fopen(file_name.c_str(), "r");
+        if(f==NULL) {          
+            return false;
+        }
+        
+        char line[64];
+        csv_response << "Time[s],Battery[V],Cell1[V],Cell2[V],Current[A],Resistance[Ohm]\n";
+        bool first_line{true};
+        while (fgets(line, sizeof(line), f)) {
+            std::stringstream ss(line);
+            std::string item;
+            std::vector<std::string> tokens;
+
+            while (std::getline(ss, item, ',')) {
+                // Remove potential newline at end
+                if (!item.empty() && item.back() == '\n') item.pop_back();
+                    tokens.push_back(item);
+            }
+
+            if (first_line) {
+                first_line = false;
+                continue;
+            }
+            
+            if (tokens.size() >= 4) {
+                float time   = std::stof(tokens[0]);
+                float Vbatt  = std::stof(tokens[1]);
+                float Vcell1 = std::stof(tokens[2]);
+                float R      = std::stof(tokens[3]);
+//                ESP_LOGI(TAG, "Read: id=%.1f, v1=%.2f, v2=%.2f, v3=%.2f", time, Vbatt, Vcell1, R);
+
+                //calculated fields
+                float Vcell2  = Vbatt - Vcell1;
+                float Current = Vbatt / R;
+
+                csv_response << std::fixed << std::setprecision(2) << time << ",";
+                csv_response << std::fixed << std::setprecision(2) << Vbatt << ",";
+                csv_response << std::fixed << std::setprecision(2) << Vcell1 << ",";
+                csv_response << std::fixed << std::setprecision(2) << Vcell2 << ",";
+                csv_response << std::fixed << std::setprecision(2) << Current << ",";
+                csv_response << std::fixed << std::setprecision(2) << R << "\n";
+            }
+        }
+
+        fclose(f);
+
+        return true;
+    }
     
     static esp_err_t data_get_handler(httpd_req_t *req) {
         char json_response[256];
@@ -214,6 +348,54 @@ public:
         .uri       = "/data",
         .method    = HTTP_GET,
         .handler   = Webserver::data_get_handler,
+        .user_ctx  = NULL
+    };
+
+    static esp_err_t filedir_get_handler(httpd_req_t *req) {
+
+        ESP_LOGI(TAG, "... FILEDIR REQUEST RECEIVED ...");
+        ESP_LOGI(TAG, "%s", req->uri);
+
+        std::ostringstream response_str;        
+
+        const char* path = "/spiffs/data";
+        DIR* dir = opendir(path);
+        if (!dir) {
+            ESP_LOGE(TAG, "Failed to open directory: %s", path);
+            httpd_resp_send_500(req);
+            return ESP_FAIL;            
+        }
+
+        response_str << "[";
+
+        struct dirent* entry;
+        bool first_item = true;
+        while ((entry = readdir(dir)) != NULL) {
+            // Skontrolujeme, či súbor má príponu ".csv"
+            const char* ext = strrchr(entry->d_name, '.');
+            if (ext && strcmp(ext, ".csv") == 0) {
+                if (first_item) first_item = false;                    
+                else            response_str << ",";
+                response_str << "{";
+                response_str << "\"filename\": \"" << entry->d_name << "\",";
+                response_str << "\"length\": \"" << 60 << " sec\",";
+                response_str << "\"endvoltage\": \"" << 5.65 << " V\"";
+                response_str << "}";
+           
+                ESP_LOGI(TAG, "Found CSV file: %s", entry->d_name);
+            }
+        }
+        response_str << "]";
+        
+        httpd_resp_set_type(req, "application/json");
+        httpd_resp_send(req, response_str.str().c_str(), response_str.str().length());
+        
+        return ESP_OK;
+    };
+    static constexpr httpd_uri_t filedir = {
+        .uri       = "/filedir",
+        .method    = HTTP_GET,
+        .handler   = Webserver::filedir_get_handler,
         .user_ctx  = NULL
     };
 

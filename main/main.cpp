@@ -173,7 +173,7 @@ extern "C" void app_main(void)
         //}
         
         //printf("================================================================\n");
-        vTaskDelay(pdMS_TO_TICKS(200));
+        vTaskDelay(pdMS_TO_TICKS(100));
     }
  
     fflush(stdout);
