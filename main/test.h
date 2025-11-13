@@ -9,15 +9,19 @@ public:
     Test () {};
     ~Test () {};
 
-    bool test_start = false;
-    bool test_stop = false;
-    int countdown = 0;
+    bool test_start {false};
+    bool test_stop {false};    
 
-    bool test_running = false;
+    bool test_running {false};
 
     void run();
 
     std::string test_name;
+
+public://                            30 sec
+     int64_t test_max_time_sec {30000000};
+     int64_t test_time_sec_{0};
+     int64_t test_start_time_;
 
     
 };

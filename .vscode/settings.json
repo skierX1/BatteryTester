@@ -19,6 +19,13 @@
   "idf.flashType": "UART",
   "files.associations": {
     "fstream": "cpp",
-    "format": "cpp"
+    "format": "cpp",
+    "future": "cpp",
+    "istream": "cpp",
+    "mutex": "cpp",
+    "ostream": "cpp",
+    "stop_token": "cpp",
+    "typeinfo": "cpp",
+    "test": "cpp"
   }
 }

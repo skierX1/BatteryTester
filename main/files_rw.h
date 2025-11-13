@@ -7,6 +7,8 @@
 #include <string.h>
 
 #include "defines.h"
+#include "esp_log.h"
+#include "esp_spiffs.h"
 
 extern const char *TAG;
 
@@ -39,6 +41,17 @@ public:
         closedir(dir);
     }
 
+    static bool file_exists(std::string &filename) {
+        
+       if (FILE *file = fopen(filename.c_str(), "r")) {
+            fclose(file);
+            return true;
+        } else {
+            return false;
+        }   
+    }
+
+    
 
     static FILE* Open(char* filename){
         // Try opening the file you added        

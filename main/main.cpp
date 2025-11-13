@@ -159,10 +159,10 @@ extern "C" void app_main(void)
     // Main reading loop
 
     while(true) {
-        test_->run();
         // Toggle LEDs — invert if active-low
         //printf("\n==== CITAM NAPATIA CITAM AKO BLAZON ======================\n");
         voltage_reader.ReadVoltage();
+        test_->run();
         
         //for (int i = 0; i < NUM_GPIOs; i++) {
         //    ESP_LOGI(TAG, "%s - Raw: %lu, Voltage: %.3fV, Calibrated: %s", 
@@ -173,7 +173,7 @@ extern "C" void app_main(void)
         //}
         
         //printf("================================================================\n");
-        vTaskDelay(pdMS_TO_TICKS(500));
+        vTaskDelay(pdMS_TO_TICKS(200));
     }
  
     fflush(stdout);

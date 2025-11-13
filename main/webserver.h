@@ -1,7 +1,11 @@
 #ifndef __WEBSERVER_H
 #define __WEBSERVER_H
 
-#include <string.h>
+
+#include <sstream>
+#include <iomanip>
+#include <string>
+
 #include "esp_event.h"
 #include "esp_http_server.h"
 #include "nvs_flash.h"
@@ -188,13 +192,16 @@ public:
         ESP_LOGI(TAG, "... DATA REQUEST RECEIVED ...");
         ESP_LOGI(TAG, "%s", req->uri);
 
+        std::ostringstream time_str_stream;
+        time_str_stream << std::fixed << std::setprecision(1) << ((test_->test_max_time_sec - test_->test_time_sec_) / 1000000);
+
         snprintf(json_response, sizeof(json_response),
-                "{\"voltage\":%.2f,\"cell1\":%.2f,\"cell2\":%.2f,\"current\":%.2f,\"countdown\":%d,\"test_running\":%d}",
+                "{\"voltage\":%.2f,\"cell1\":%.2f,\"cell2\":%.2f,\"current\":%.2f,\"countdown\":%s,\"test_running\":%d}",
                 voltage_reader_->voltage[1].voltage,
                 voltage_reader_->voltage[0].voltage,
                 voltage_reader_->voltage[1].voltage - voltage_reader_->voltage[0].voltage,
                 test_->test_running ? voltage_reader_->voltage[1].voltage / 0.2 : 0,
-                test_->countdown,
+                time_str_stream.str().c_str(),
                 test_->test_running ? 1 : 0
                 );
         
