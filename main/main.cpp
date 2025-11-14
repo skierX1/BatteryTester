@@ -173,11 +173,19 @@ extern "C" void app_main(void)
         //}
         
         //printf("================================================================\n");
-        vTaskDelay(pdMS_TO_TICKS(100));
+        vTaskDelay(pdMS_TO_TICKS(50));
     }
  
     fflush(stdout);
     //esp_restart();
 
     Spiffs::Deactivate();
+
+/* partitions.csv -> full flash size
+    # Name,   Type, SubType, Offset,   Size,   Flags
+nvs,      data, nvs,     0x9000,   0x4000,
+phy_init, data, phy,     0xd000,   0x1000,
+factory,  app,  factory, 0x10000,  0x138000,
+spiffs,   data, spiffs,  0x148000, 0xEB8000,
+*/
 }

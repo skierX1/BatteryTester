@@ -6,6 +6,7 @@
 #include <sstream>
 #include <iomanip>
 #include <string>
+#include <cmath>
 
 #include "test.h"
 #include "defines.h"
@@ -36,7 +37,8 @@ void Test::run() {
     if (test_stop) {
         test_stop = false;
         test_start = false;
-        test_running = false;                
+        test_running = false;
+        refreshlist = 1;                
     }
      
     if (!test_running) {
@@ -75,14 +77,15 @@ void Test::run() {
     int64_t now = esp_timer_get_time();  // microseconds since boot
     test_time_sec_ = now - test_start_time_;
 
-    if ( (now - time_last_run_)/1000000 < 0.5 )
+    if ( (static_cast<double>(now - time_last_run_)/1000000.0) < 0.5 )
         return;
     time_last_run_ = now;
 
-    // stop when timer exceeds
+    // stop when timer exceeds (end of test)
     if (test_time_sec_ > test_max_time_sec) {
         test_stop = true;
-        test_time_sec_ = test_max_time_sec;        
+        test_time_sec_ = test_max_time_sec; 
+        refreshlist = 1;
         return;
     }
 
@@ -98,8 +101,11 @@ void Test::run() {
     double Vcell1 = voltage_reader_->voltage[0].voltage;
     double R = 0.2;
 
+    double sec=static_cast<double>(static_cast<double>(test_time_sec_) / 1000000.0);
+    double sec_rounded = std::round(sec * 2.0) / 2.0;
+
     std::ostringstream time_str_stream;
-    time_str_stream << std::fixed << std::setprecision(1) << static_cast<double>(static_cast<double>(test_time_sec_) / 1000000.0);
+    time_str_stream << std::fixed << std::setprecision(1) << sec_rounded;
 
     fprintf(f, "%s,%.3f,%.3f,%.2f\n",time_str_stream.str().c_str(),Vbatt,Vcell1,R);
 

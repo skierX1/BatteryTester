@@ -6,6 +6,7 @@
 #include <iomanip>
 #include <string>
 #include <vector>
+#include <cmath>
 
 #include "esp_event.h"
 #include "esp_http_server.h"
@@ -306,12 +307,12 @@ public:
                 float Vcell2  = Vbatt - Vcell1;
                 float Current = Vbatt / R;
 
-                csv_response << std::fixed << std::setprecision(2) << time << ",";
-                csv_response << std::fixed << std::setprecision(2) << Vbatt << ",";
-                csv_response << std::fixed << std::setprecision(2) << Vcell1 << ",";
-                csv_response << std::fixed << std::setprecision(2) << Vcell2 << ",";
-                csv_response << std::fixed << std::setprecision(2) << Current << ",";
-                csv_response << std::fixed << std::setprecision(2) << R << "\n";
+                csv_response << std::fixed << std::setprecision(3) << time << ",";
+                csv_response << std::fixed << std::setprecision(3) << Vbatt << ",";
+                csv_response << std::fixed << std::setprecision(3) << Vcell1 << ",";
+                csv_response << std::fixed << std::setprecision(3) << Vcell2 << ",";
+                csv_response << std::fixed << std::setprecision(3) << Current << ",";
+                csv_response << std::fixed << std::setprecision(3) << R << "\n";
             }
         }
 
@@ -326,19 +327,25 @@ public:
         ESP_LOGI(TAG, "... DATA REQUEST RECEIVED ...");
         ESP_LOGI(TAG, "%s", req->uri);
 
+        double time_sec = std::round(static_cast<double>(test_->test_max_time_sec - test_->test_time_sec_) / 1000000.0);
+
         std::ostringstream time_str_stream;
-        time_str_stream << std::fixed << std::setprecision(1) << ((test_->test_max_time_sec - test_->test_time_sec_) / 1000000);
+        time_str_stream << std::fixed << std::setprecision(0) << time_sec;
 
         snprintf(json_response, sizeof(json_response),
-                "{\"voltage\":%.2f,\"cell1\":%.2f,\"cell2\":%.2f,\"current\":%.2f,\"countdown\":%s,\"test_running\":%d}",
+                "{\"voltage\":%.3f,\"cell1\":%.3f,\"cell2\":%.3f,\"current\":%.3f,\"countdown\":%s,\"test_running\":%d,\"refreshlist\":%d}",
                 voltage_reader_->voltage[1].voltage,
                 voltage_reader_->voltage[0].voltage,
                 voltage_reader_->voltage[1].voltage - voltage_reader_->voltage[0].voltage,
                 test_->test_running ? voltage_reader_->voltage[1].voltage / 0.2 : 0,
                 time_str_stream.str().c_str(),
-                test_->test_running ? 1 : 0
+                test_->test_running ? 1 : 0,
+                test_->refreshlist
                 );
-        
+        if (test_->refreshlist != 0) {
+            test_->refreshlist = 0; // reset refresh list command
+        }
+
         httpd_resp_set_type(req, "application/json");
         httpd_resp_send(req, json_response, strlen(json_response));
         
@@ -376,10 +383,13 @@ public:
             if (ext && strcmp(ext, ".csv") == 0) {
                 if (first_item) first_item = false;                    
                 else            response_str << ",";
+
+                double length, endvoltage;
+                get_length_and_end_voltage(entry->d_name, length, endvoltage);
                 response_str << "{";
                 response_str << "\"filename\": \"" << entry->d_name << "\",";
-                response_str << "\"length\": \"" << 60 << " sec\",";
-                response_str << "\"endvoltage\": \"" << 5.65 << " V\"";
+                response_str << "\"length\": \"" << std::fixed << std::setprecision(1) << length << " sec\",";
+                response_str << "\"endvoltage\": \"" << std::fixed << std::setprecision(2) << endvoltage << " V\"";
                 response_str << "}";
            
                 ESP_LOGI(TAG, "Found CSV file: %s", entry->d_name);
@@ -398,6 +408,42 @@ public:
         .handler   = Webserver::filedir_get_handler,
         .user_ctx  = NULL
     };
+
+    static bool get_length_and_end_voltage(char* filename, double &length, double &endvoltage){
+        length = 0.0;
+        endvoltage = 0.0;
+
+        std::string path = "/spiffs/data/";
+        path += filename;
+                
+        FILE *f = fopen(path.c_str(), "r");
+        if (f == NULL) {        
+            return false;
+        }
+
+        char line[128];
+
+        // Skip the header line
+        if (fgets(line, sizeof(line), f) == NULL) {
+            fclose(f);
+            return false;
+        }
+
+        while (fgets(line, sizeof(line), f)) {
+            // Read from first two CSV columns: Time[s], Battery[V]
+            if (sscanf(line, "%lf,%lf", &length, &endvoltage) == 2) {
+                printf("length = %.3f, endvoltage = %.3f\n", length, endvoltage);
+            } else {
+                printf("Invalid line: %s\n", line);
+            }
+        }
+
+        fclose(f);
+
+        return true;
+    }
+
+
 
     static esp_err_t startbtn_handler(httpd_req_t *req) {
         char json_response[256];

@@ -23,6 +23,7 @@ public://                            30 sec
      int64_t test_time_sec_{0};
      int64_t test_start_time_{0};
      int64_t time_last_run_{0};
+     int refreshlist {0};
 
     
 };

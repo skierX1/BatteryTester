@@ -332,6 +332,11 @@
           document.getElementById("cell2").value = data.cell2 + " V";
           document.getElementById("current").value = data.current + " A";
           document.getElementById("countdown").value = data.countdown + " sec";
+		  
+		  if (data.refreshlist == 1) {
+			loadFileList()
+		  }
+			 
 
 		  if (data.test_running == 1) {
 			document.querySelector('.countdown-frame').classList.add('green');  // turn green	
@@ -420,7 +425,9 @@
     // load once on page start
     loadFileList();
 	
-    setInterval(refreshData, 600);
+    setInterval(refreshData, 500);
+	
+	document.body.classList.toggle("dark-mode");
   </script>
 </body>
 </html>

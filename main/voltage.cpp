@@ -115,7 +115,7 @@ void VoltageReader::setup_adc_channels() {
 void VoltageReader::read_adc_channel(int channel_index) {
     // Read multiple samples for better accuracy
     uint32_t adc_reading = 0;
-    const int samples = 35;
+    const int samples = 100;
 
     for (int i = 0; i < samples; i++) {
         //adc_reading += adc1_get_raw(adc_channels[channel_index].channel);
