@@ -18,8 +18,10 @@ public:
 
     std::string test_name;
 
-public://                            30 sec
-     int64_t test_max_time_sec {30000000};
+public:
+     
+     //int64_t test_max_time_sec {30000000}; //30 sec
+     int64_t test_max_time_sec {6000000}; //30 sec
      int64_t test_time_sec_{0};
      int64_t test_start_time_{0};
      int64_t time_last_run_{0};

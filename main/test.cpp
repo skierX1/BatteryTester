@@ -12,6 +12,7 @@
 #include "defines.h"
 #include "files_rw.h"
 #include "voltage.h"
+#include "discharger.h"
 extern "C" {
     #include "esp_timer.h"
 }
@@ -19,6 +20,7 @@ extern "C" {
 class Test* test_;
 
 extern VoltageReader* voltage_reader_;;
+extern Discharger* discharger_;
 
 void Test::run() {
 
@@ -38,7 +40,8 @@ void Test::run() {
         test_stop = false;
         test_start = false;
         test_running = false;
-        refreshlist = 1;                
+        refreshlist = 1;   
+        discharger_->set_pwm_duty_gpio41(0);             
     }
      
     if (!test_running) {
@@ -72,6 +75,8 @@ void Test::run() {
 
         // remember the start test time
         test_start_time_ = esp_timer_get_time();  // microseconds since boot
+
+        discharger_->set_pwm_duty_gpio41(100);
     }
 
     int64_t now = esp_timer_get_time();  // microseconds since boot

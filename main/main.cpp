@@ -39,10 +39,13 @@
 #include "driver/rmt.h"
 
 #include "test.h"
+#include "discharger.h"
 
 const char *TAG = "BATTERY_TESTER";
+
 extern VoltageReader* voltage_reader_;
 extern Test* test_;
+extern Discharger* discharger_;
 
 #include "driver/ledc.h"
 #include "freertos/FreeRTOS.h"
@@ -112,41 +115,13 @@ void ws2812_send(rmt_channel_t channel, uint8_t r, uint8_t g, uint8_t b)
 
 extern "C" void app_main(void)
 {
-/*
-       // Your existing RMT configuration
-    rmt_config_t config = {};
-    config.rmt_mode = RMT_MODE_TX;
-    config.channel = RMT_CHANNEL;
-    config.gpio_num = (gpio_num_t)LED_PIN;
-    config.clk_div = 2;
-    config.mem_block_num = 1;
-    config.tx_config.loop_en = false;
-    config.tx_config.carrier_en = false;
-    rmt_config(&config);
-    rmt_driver_install(config.channel, 0, 0);
-
-    // Function to properly turn off LED with reset
-    
-
-    ESP_LOGI(TAG, "Starting proper LED ON/OFF control");
-
-    while(true) {
-        // LED ON - White
-        ESP_LOGI(TAG, "LED ON");
-        ws2812_send(RMT_CHANNEL, 1, 0, 0);
-        vTaskDelay(pdMS_TO_TICKS(1000));
-        
-        // LED OFF with proper reset
-        ESP_LOGI(TAG, "LED OFF");
-        proper_led_off(config);
-        vTaskDelay(pdMS_TO_TICKS(1000));
-    }  
-
-*/
     VoltageReader voltage_reader;
     Test test;
+    Discharger discharger;
+
     voltage_reader_ = &voltage_reader;
     test_ = &test;
+    discharger_ = &discharger;
 
     // Initialize spiffs partition
     if (!Spiffs::Activate()) {

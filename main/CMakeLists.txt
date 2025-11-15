@@ -1,3 +1,3 @@
-idf_component_register(SRCS "webserver.cpp" "files_rw.cpp" "main.cpp" "voltage.cpp" "test.cpp"
+idf_component_register(SRCS "webserver.cpp" "files_rw.cpp" "main.cpp" "voltage.cpp" "test.cpp" "discharger.cpp"
                        PRIV_REQUIRES spi_flash spiffs driver esp_adc esp_http_server esp_wifi wpa_supplicant nvs_flash esp_timer 
                        INCLUDE_DIRS ".")
