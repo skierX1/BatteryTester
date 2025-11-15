@@ -115,7 +115,7 @@ void VoltageReader::setup_adc_channels() {
 void VoltageReader::read_adc_channel(int channel_index) {
     // Read multiple samples for better accuracy
     uint32_t adc_reading = 0;
-    const int samples = 100;
+    const int samples = 64;
 
     for (int i = 0; i < samples; i++) {
         //adc_reading += adc1_get_raw(adc_channels[channel_index].channel);
@@ -136,7 +136,13 @@ void VoltageReader::read_adc_channel(int channel_index) {
     if (adc_channels[channel_index].calibrated) {
         int voltage_mv = 0;
         if (adc_cali_raw_to_voltage(adc_channels[channel_index].cali_handle, adc_reading, &voltage_mv) == ESP_OK) {
-            voltage[channel_index].voltage = voltage_mv / 1000.0f;
+            voltage[channel_index].voltage = voltage_mv / 1000.0f; 
+
+            // voltage divider coeficient .. separate for each channel as different resistors are used
+            if (channel_index == 0)
+                voltage[channel_index].voltage *= 3.15635;
+            else
+                voltage[channel_index].voltage *= 3.261835;
             return;
         }
     }

@@ -20,6 +20,7 @@
 #include "esp_adc/adc_cali_scheme.h"
 #include "esp_adc/adc_oneshot.h"
 #include <esp_log.h>
+#include "driver/adc.h"
 
 #include "defines.h"
 
@@ -61,9 +62,9 @@ class VoltageReader {
     
     // Note: GPIO1 is typically used for debug output
     // Note: GPIO2 is also used for boot mode in some cases
-    const gpio_adc_mapping_t gpio_mappings[NUM_GPIOs] = {
-        {GPIO_NUM_1, ADC_CHANNEL_0, "GPIO1"},  
-        {GPIO_NUM_2, ADC_CHANNEL_1, "GPIO2"},  
+    const gpio_adc_mapping_t gpio_mappings[NUM_GPIOs] = {    
+        {GPIO_NUM_1, ADC_CHANNEL_0, "GPIO1"},     // cell1
+        {GPIO_NUM_10, ADC_CHANNEL_9, "GPIO10"},   // battery
     };    
     adc_channel_info_t adc_channels[NUM_GPIOs];
 

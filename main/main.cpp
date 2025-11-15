@@ -36,6 +36,8 @@
 #include "webserver.h"
 #include "wifi.h"
 
+#include "driver/rmt.h"
+
 #include "test.h"
 
 const char *TAG = "BATTERY_TESTER";
@@ -46,55 +48,100 @@ extern Test* test_;
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
-#define LED_GPIO    8
-#define LEDC_CHANNEL LEDC_CHANNEL_0
-#define LEDC_TIMER   LEDC_TIMER_0
+
+#define LED_PIN 48
+#define RMT_CHANNEL RMT_CHANNEL_0
+
+// Helper to convert 0/1 into WS2812 RMT pulse
+static void ws2812_write_bit(rmt_item32_t *item, bool bit)
+{
+    if(bit) {
+        // '1' bit: high 0.8us, low 0.45us
+        item->level0 = 1;
+        item->duration0 = 8;   // 0.1us units (800ns)
+        item->level1 = 0;
+        item->duration1 = 4;   // 0.45us
+    } else {
+        // '0' bit: high 0.4us, low 0.85us
+        item->level0 = 1;
+        item->duration0 = 4;
+        item->level1 = 0;
+        item->duration1 = 8;
+    }
+}
+
+// Send single RGB value
+void ws2812_send(rmt_channel_t channel, uint8_t r, uint8_t g, uint8_t b)
+{
+    rmt_item32_t items[24];
+    int idx = 0;
+
+    // WS2812 expects GRB order
+    uint8_t colors[3] = {g, r, b};
+    for(int c=0; c<3; c++) {
+        for(int i=7; i>=0; i--) {
+            ws2812_write_bit(&items[idx++], (colors[c] >> i) & 1);
+        }
+    }
+
+    rmt_write_items(channel, items, 24, true);
+    rmt_wait_tx_done(channel, portMAX_DELAY);
+}
+
+// Function to force LED off with proper reset
+    void force_led_off() {
+        ws2812_send(RMT_CHANNEL, 0, 0, 0);
+        // WS2812 requires >50µs low signal to reset/latch
+        vTaskDelay(pdMS_TO_TICKS(1)); // 1ms is more than enough
+    }
+
+    void proper_led_off( rmt_config_t &config) {
+        // Send black color (all channels 0)
+        ws2812_send(RMT_CHANNEL, 0, 0, 0);
+        
+        // CRITICAL: WS2812 requires >50µs LOW signal to reset/latch
+        // Use gpio_set_level to force a long LOW period
+        gpio_set_direction((gpio_num_t)LED_PIN, GPIO_MODE_OUTPUT);
+        gpio_set_level((gpio_num_t)LED_PIN, 0);
+        vTaskDelay(pdMS_TO_TICKS(1)); // 1ms = 1000µs (well over 50µs requirement)
+        
+        // Re-enable RMT
+        rmt_config(&config);
+        rmt_driver_install(config.channel, 0, 0);
+    }
 
 extern "C" void app_main(void)
 {
+/*
+       // Your existing RMT configuration
+    rmt_config_t config = {};
+    config.rmt_mode = RMT_MODE_TX;
+    config.channel = RMT_CHANNEL;
+    config.gpio_num = (gpio_num_t)LED_PIN;
+    config.clk_div = 2;
+    config.mem_block_num = 1;
+    config.tx_config.loop_en = false;
+    config.tx_config.carrier_en = false;
+    rmt_config(&config);
+    rmt_driver_install(config.channel, 0, 0);
 
+    // Function to properly turn off LED with reset
     
-    // just turning on, not blinking .. not possible to set it off !!!
-    /*
-    // 1. Configure LEDC timer
-    ledc_timer_config_t timer = {
-        .speed_mode = LEDC_LOW_SPEED_MODE,        
-        .duty_resolution = LEDC_TIMER_8_BIT,
-        .timer_num = LEDC_TIMER,
-        .freq_hz = 5000,
-        .clk_cfg = LEDC_AUTO_CLK
-    };
-    ledc_timer_config(&timer);
 
-    // 2. Configure LEDC channel
-    ledc_channel_config_t channel = {
-        .gpio_num = LED_GPIO,
-        .speed_mode = LEDC_LOW_SPEED_MODE,
-        .channel = LEDC_CHANNEL,
-        .intr_type = LEDC_INTR_DISABLE,
-        .timer_sel = LEDC_TIMER,
-        .duty = 255,   // start OFF (active-low)
-        .hpoint = 0
-    };
-    ledc_channel_config(&channel);
+    ESP_LOGI(TAG, "Starting proper LED ON/OFF control");
 
-    // 3. Blink loop
-    bool led_on = false;
-    while (true) {
-        printf("Tick  ......");
-        if (led_on) {
-            // Turn LED ON (active-low)            
-            ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL, 0);
-        } else {
-            // Turn LED OFF             
-            //ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL, 1);
-        }
-        //vTaskDelay(pdMS_TO_TICKS(200)); // 500 ms delay
-        ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL);
+    while(true) {
+        // LED ON - White
+        ESP_LOGI(TAG, "LED ON");
+        ws2812_send(RMT_CHANNEL, 1, 0, 0);
+        vTaskDelay(pdMS_TO_TICKS(1000));
+        
+        // LED OFF with proper reset
+        ESP_LOGI(TAG, "LED OFF");
+        proper_led_off(config);
+        vTaskDelay(pdMS_TO_TICKS(1000));
+    }  
 
-        led_on = !led_on;  // toggle state
-        vTaskDelay(pdMS_TO_TICKS(500)); // 500 ms delay
-    }
 */
     VoltageReader voltage_reader;
     Test test;
